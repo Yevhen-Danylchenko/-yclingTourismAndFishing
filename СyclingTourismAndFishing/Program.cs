@@ -245,34 +245,83 @@ namespace CyclingTourismAndFishing
                 return Results.Ok(items);
             });
 
-            app.MapPost("/userlogin", async (HttpContext httpContext, ApplicationDbContext db, string username, string password) =>
+            //app.MapPost("/userlogin", async (HttpContext httpContext, ApplicationDbContext db, string username, string email, string password) =>
+            //{
+            //    var user = await db.Users.FirstOrDefaultAsync(u => u.Username == username && u.Email == email && u.PasswordHash == password);
+            //    if (user == null)
+            //    {
+            //        return Results.BadRequest("Невірні дані");
+            //    }
+
+            //    var claims = new List<Claim>
+            //{
+            //    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), // головний клейм
+            //    new Claim(ClaimTypes.Name, user.Username),
+            //    new Claim(ClaimTypes.Email, user.Email)
+            //};
+
+            //    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            //    var authProperties = new AuthenticationProperties
+            //    {
+            //        IsPersistent = true
+            //    };
+
+            //    await httpContext.SignInAsync(
+            //        CookieAuthenticationDefaults.AuthenticationScheme,
+            //        new ClaimsPrincipal(claimsIdentity),
+            //        authProperties);
+
+            //    return Results.Redirect("/user-panel");
+            //});
+
+            app.MapPost("/userlogin", async (HttpContext context, ApplicationDbContext db) =>
             {
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Username == username && u.PasswordHash == password);
-                if (user == null)
+                var form = await context.Request.ReadFormAsync();
+                var username = form["username"].ToString();
+                var email = form["email"].ToString();
+                var password = form["password"].ToString();
+
+                var user = await db.Users.FirstOrDefaultAsync(u => u.Username == username);
+
+                if (user != null && user.PasswordHash == password && user.IsAdmin)
                 {
-                    return Results.BadRequest("Невірні дані");
+                    var claims = new[]
+                    {
+                        new Claim(ClaimTypes.Name, username),
+                        new Claim(ClaimTypes.Role, "User")
+                    };
+
+                    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    var principal = new ClaimsPrincipal(identity);
+
+                    await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+                    return Results.Redirect("/user-panel");
                 }
 
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), // головний клейм
-                    new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.Email, user.Email)
-                };
-
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var authProperties = new AuthenticationProperties
-                {
-                    IsPersistent = true
-                };
-
-                await httpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity),
-                    authProperties);
-
-                return Results.Redirect("/user-panel");
+                return Results.Redirect("/login");
             });
+
+            //app.MapPost("/userlogin", async (ApplicationDbContext db, LoginModel model) =>
+            //{
+            //    if (string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrWhiteSpace(model.Password))
+            //    {
+            //        return Results.BadRequest("Заповніть усі поля");
+            //    }
+
+            //    var user = new User
+            //    {
+            //        Username = model.Username,
+            //        Email = model.Email,
+            //        PasswordHash = model.Password, // краще хешувати!
+            //        IsAdmin = false
+            //    };
+
+            //    db.Users.Add(user);
+            //    await db.SaveChangesAsync();
+
+            //    return Results.Ok(user);
+            //});
 
 
             app.MapPost("/api/cart/add", async (CartItemDto dto, ApplicationDbContext db, HttpContext httpContext) =>
@@ -293,7 +342,7 @@ namespace CyclingTourismAndFishing
                 {
                     ItemId = dto.ItemId,
                     Quantity = dto.Quantity,
-                    UserId = userId
+                    UserId = "test-user" // Тут має бути userId з аутентифікації
                 };
 
                 db.CartItems.Add(cartItem);

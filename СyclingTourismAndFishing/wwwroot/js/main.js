@@ -49,7 +49,7 @@ async function loadMenuItems() {
             <div class="menu-card-content">
                 <h3>${m.name}</h3>
                 <p>${m.description}</p>
-                <div class="price">${m.price} в‚ґ</div>
+                <div class="price">${m.price} ₴</div>
             </div>
         </div>
     `).join('');
@@ -66,7 +66,7 @@ async function loadAdminMenuItems() {
             <div class="menu-card-content">
                 <h3>${m.name}</h3>
                 <p>${m.description}</p>
-                <div class="price">${m.price} в‚ґ</div>
+                <div class="price">${m.price} ₴</div>
                 <div class="admin-actions">
                     <button class="btn-edit" onclick="location.href='/admin/edit-item/${m.id}'">Р РµРґР°РіСѓРІР°С‚Рё</button>
                     <form method="post" action="/admin/delete-item/${m.id}" style="display: inline;">
