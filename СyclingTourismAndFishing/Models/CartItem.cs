@@ -4,7 +4,7 @@
     {
         public int Id { get; set; }
 
-        // Зв’язок із MenuItem
+        // Зв’язок із Item
         public int ItemId { get; set; }
         public Item Item { get; set; }
 
@@ -12,5 +12,7 @@
 
         // Можна додати зв’язок із користувачем
         public string UserId { get; set; }
+
+        public User User { get; set; }
     }
 }

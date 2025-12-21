@@ -104,7 +104,7 @@ async function loadItemForEdit() {
 }
 
 async function loadUserMenuItems() {
-    const response = await fetch('/api/userlogin/menu-items');
+    const response = await fetch('/api/user-panel/menu-items');
     const menuItems = await response.json();
 
     const container = document.getElementById('user-menu-container');
@@ -125,7 +125,7 @@ async function loadUserMenuItems() {
 
 async function loadUserItems() {
     try {
-        const response = await fetch('/api/userlogin/items');
+        const response = await fetch('/api/user-panel/items');
         if (!response.ok) {
             throw new Error("Не вдалося завантажити товари");
         }
@@ -157,24 +157,24 @@ async function loadUserItems() {
 document.addEventListener("DOMContentLoaded", loadUserItems);
 
 // Функція покупки
-async function buyItem(itemId) {
-    try {
-        const response = await fetch('/api/cart/add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ itemId: itemId, quantity: 1 })
-        });
+//async function buyItem(itemId) {
+//    try {
+//        const response = await fetch('/api/cart/add', {
+//            method: 'POST',
+//            headers: { 'Content-Type': 'application/json' },
+//            body: JSON.stringify({ itemId: itemId, quantity: 1 })
+//        });
 
-        if (response.ok) {
-            alert("Товар додано до кошика!");
-        } else {
-            const error = await response.text();
-            alert("Помилка: " + error);
-        }
-    } catch (err) {
-        alert("Сталася помилка: " + err.message);
-    }
-}
+//        if (response.ok) {
+//            alert("Товар додано до кошика!");
+//        } else {
+//            const error = await response.text();
+//            alert("Помилка: " + error);
+//        }
+//    } catch (err) {
+//        alert("Сталася помилка: " + err.message);
+//    }
+//}
 
 // функція для покупки
 async function buyItem(itemId) {
@@ -184,7 +184,7 @@ async function buyItem(itemId) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ menuItemId: itemId, quantity: 1 })
+            body: JSON.stringify({ ItemId: itemId, quantity: 1 })
         });
 
         if (response.ok) {
@@ -197,4 +197,22 @@ async function buyItem(itemId) {
         alert("Сталася помилка при додаванні товару: " + err.message);
     }
 }
+
+function goToUserPanel() {
+    // редірект на сторінку Юзер-панелі
+    window.location.href = "/user-panel";
+}
+
+// приклад використання: підключаємо до форми
+document.addEventListener("DOMContentLoaded", () => {
+    const loginForm = document.querySelector("form");
+
+    if (loginForm) {
+        loginForm.addEventListener("submit", function (e) {
+            e.preventDefault(); // блокуємо стандартну відправку
+            // тут можна додати перевірку логіну/пароля
+            goToUserPanel(); // виклик функції переходу
+        });
+    }
+});
 

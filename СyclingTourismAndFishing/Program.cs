@@ -219,14 +219,14 @@ namespace CyclingTourismAndFishing
             }).RequireAuthorization();
 
 
-            app.MapGet("/userlogin", async () =>
+            app.MapGet("/user-panel", async () =>
             {
-                var html = await File.ReadAllTextAsync("Pages/userlogin.html");
+                var html = await File.ReadAllTextAsync("Pages/user-panel.html");
                 return Results.Content(html, "text/html");
             });
 
             // GET: /api/user/items
-            app.MapGet("/api/userlogin/items", async (ApplicationDbContext db) =>
+            app.MapGet("/api/user-panel/items", async (ApplicationDbContext db) =>
             {
                 // Вибираємо тільки доступні товари
                 var items = await db.Items
@@ -245,19 +245,67 @@ namespace CyclingTourismAndFishing
                 return Results.Ok(items);
             });
 
-            app.MapPost("/api/cart/add", async (CartItemDto dto, ApplicationDbContext db) =>
+            app.MapPost("/userlogin", async (HttpContext httpContext, ApplicationDbContext db, string username, string password) =>
             {
+                var user = await db.Users.FirstOrDefaultAsync(u => u.Username == username && u.PasswordHash == password);
+                if (user == null)
+                {
+                    return Results.BadRequest("Невірні дані");
+                }
+
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), // головний клейм
+                    new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.Email, user.Email)
+                };
+
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var authProperties = new AuthenticationProperties
+                {
+                    IsPersistent = true
+                };
+
+                await httpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity),
+                    authProperties);
+
+                return Results.Redirect("/user-panel");
+            });
+
+
+            app.MapPost("/api/cart/add", async (CartItemDto dto, ApplicationDbContext db, HttpContext httpContext) =>
+            {
+                var itemExists = await db.Items.AnyAsync(i => i.Id == dto.ItemId);
+                if (!itemExists)
+                {
+                    return Results.BadRequest($"ItemId {dto.ItemId} не існує");
+                }
+
+                var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Results.Unauthorized();
+                }
+
                 var cartItem = new CartItem
                 {
                     ItemId = dto.ItemId,
                     Quantity = dto.Quantity,
-                    UserId = "test-user" // пізніше заміниш на реального користувача
+                    UserId = userId
                 };
 
                 db.CartItems.Add(cartItem);
                 await db.SaveChangesAsync();
 
                 return Results.Ok(cartItem);
+            });
+
+            app.MapGet("/userlogin", async () =>
+            {
+                var html = await File.ReadAllTextAsync("Pages/userlogin.html");
+                return Results.Content(html, "text/html");
             });
 
             app.Run();
