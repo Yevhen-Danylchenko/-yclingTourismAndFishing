@@ -1,10 +1,11 @@
+using CyclingTourismAndFishing.Data;
+using CyclingTourismAndFishing.Models;
 using CyclingTourismAndFishing.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
 using System.Security.Claims;
-using CyclingTourismAndFishing.Data;
-using CyclingTourismAndFishing.Models;
 
 namespace CyclingTourismAndFishing
 {
@@ -288,7 +289,8 @@ namespace CyclingTourismAndFishing
                     var claims = new[]
                     {
                         new Claim(ClaimTypes.Name, username),
-                        new Claim(ClaimTypes.Role, "User")
+                        new Claim(ClaimTypes.Role, "User"),
+                        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
                     };
 
                     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -300,6 +302,49 @@ namespace CyclingTourismAndFishing
                 }
 
                 return Results.Redirect("/login");
+            });
+
+            app.MapGet("/register", async () =>
+            {
+                var html = await File.ReadAllTextAsync("Pages/register.html");
+                return Results.Content(html, "text/html");
+            });
+
+            app.MapPost("/register", async (HttpContext context, ApplicationDbContext db) =>
+            {
+                var form = await context.Request.ReadFormAsync();
+                var username = form["username"].ToString();
+                var email = form["email"].ToString();
+                var password = form["password"].ToString();
+
+                // Перевірка чи юзер вже існує
+                if (await db.Users.AnyAsync(u => u.Username == username || u.Email == email))
+                {
+                    return Results.BadRequest("User already exists");
+                }
+
+                var user = new User
+                {
+                    Username = username,
+                    Email = email,
+                    PasswordHash = password, // ⚠️ краще використовувати хешування (наприклад, BCrypt)
+                    IsAdmin = false
+                };
+
+                try
+                {
+                    await db.Users.AddAsync(user);
+                    await db.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error saving user: " + ex.Message);
+                }
+
+                //db.Users.Add(user);
+                //await db.SaveChangesAsync();
+
+                return Results.Ok("User registered successfully");
             });
 
             //app.MapPost("/userlogin", async (ApplicationDbContext db, LoginModel model) =>
@@ -332,17 +377,22 @@ namespace CyclingTourismAndFishing
                     return Results.BadRequest($"ItemId {dto.ItemId} не існує");
                 }
 
-                var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (string.IsNullOrEmpty(userId))
+                var userIdString = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userIdString))
                 {
                     return Results.Unauthorized();
+                }
+
+                if (!int.TryParse(userIdString, out var userId))
+                {
+                    return Results.BadRequest("Invalid user id in claims");
                 }
 
                 var cartItem = new CartItem
                 {
                     ItemId = dto.ItemId,
                     Quantity = dto.Quantity,
-                    UserId = "test-user" // Тут має бути userId з аутентифікації
+                    UserId = userId
                 };
 
                 db.CartItems.Add(cartItem);

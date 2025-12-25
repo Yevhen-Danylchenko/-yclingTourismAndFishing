@@ -1,4 +1,6 @@
-﻿namespace CyclingTourismAndFishing.Models
+﻿using CyclingTourismAndFishing.Models;
+
+namespace CyclingTourismAndFishing.Models
 {
     public class CartItem
     {
@@ -11,8 +13,10 @@
         public int Quantity { get; set; }
 
         // Можна додати зв’язок із користувачем
-        public string UserId { get; set; }
+        public int UserId { get; set; }
 
         public User User { get; set; }
     }
 }
+
+
